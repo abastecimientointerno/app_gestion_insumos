@@ -9,7 +9,7 @@ def generar_id_localidad(centro, almacen):
     """
     if centro == 'TCNO' and almacen == 'HUB':
         return 'TCNO-HUB'
-    return f"{centro}-{almacen}"
+    return f"{centro}"
 
 # Función para generar un DataFrame con las columnas de ID y stock
 def generar_ids_y_stock(df, tipo='general'):
@@ -39,7 +39,7 @@ def generar_ids_y_stock(df, tipo='general'):
         df['stock_libre_mas_calidad'] = df['Libre utilización'] + df['Inspecc.de calidad']
     
     # Generar "id_localidad_insumo" concatenando "id_localidad" e "id_insumo"
-    df['id_localidad_insumo'] = df['id_localidad'] + '-' + df['id_insumo'].astype(str)
+    df['id_localidad_insumo'] = df['id_localidad'] + df['id_insumo'].astype(str)
     
     return df
 
