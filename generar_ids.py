@@ -43,6 +43,53 @@ def generar_ids_y_stock(df, tipo='general'):
     
     return df
 
+def generar_y_separar_mb52(df, tipo='general'):
+    """
+    Genera las columnas necesarias para el DataFrame MB52 y lo separa en cuatro DataFrames según el almacén.
+    
+    - Aplica las transformaciones de "id_localidad", "id_insumo", "stock_libre_mas_calidad" y "id_localidad_insumo".
+    - Separa el DataFrame en cuatro partes según el valor de la columna 'Almacén':
+        - Almacén == "PI01" -> df_mb52_produccion
+        - Almacén == "" -> df_mb52_transito
+        - Almacén == "L003" -> df_mb52_hub
+        - Cualquier otro valor de almacén -> df_mb52 (resto de filas)
+    
+    Parámetros:
+    - df: DataFrame al que se le van a agregar las nuevas columnas y que se separará en cuatro.
+    - tipo: Si el tipo es 'general', se incluye la columna stock_libre_mas_calidad.
+
+    Retorna:
+    - df_mb52_produccion: DataFrame filtrado para el almacén "PI01".
+    - df_mb52_transito: DataFrame filtrado para el almacén vacío "".
+    - df_mb52_hub: DataFrame filtrado para el almacén "L003".
+    - df_mb52: DataFrame con el resto de los almacenes.
+    """
+    # Generar "id_localidad"
+    df['id_localidad'] = df.apply(lambda row: generar_id_localidad(row['Centro'], row['Almacén']), axis=1)
+
+    # Renombrar "Material" a "id_insumo"
+    df['id_insumo'] = df['Material']
+
+    # Generar "stock_libre_mas_calidad" si las columnas existen y el tipo es 'general'
+    if 'Libre utilización' in df.columns and 'Inspecc.de calidad' in df.columns and tipo == 'general':
+        df['stock_libre_mas_calidad'] = df['Libre utilización'] + df['Inspecc.de calidad']
+    
+    # Generar "id_localidad_insumo" concatenando "id_localidad" e "id_insumo"
+    df['id_localidad_insumo'] = df['id_localidad'] + df['id_insumo'].astype(str)
+
+    # Separar en tres DataFrames según el valor de la columna 'Almacén'
+    df_mb52_produccion = df[df['Almacén'] == 'PI01'].copy()
+    df_mb52_transito = df[df['Almacén'] == ''].copy()
+    df_mb52_hub = df[df['Almacén'] == 'L003'].copy()
+
+    # DataFrame para el resto de las filas (que no cumplen ninguna de las condiciones anteriores)
+    df_mb52 = df[~df['Almacén'].isin(['PI01', '', 'L003'])].copy()
+
+    # Retornar los cuatro DataFrames
+    return df_mb52_produccion, df_mb52_transito, df_mb52_hub, df_mb52
+
+
+
 # Función para filtrar por Tipo de posición en ME2N
 def filtrar_por_tipo_posicion(df, tipo_col='Tipo de posición'):
     """
