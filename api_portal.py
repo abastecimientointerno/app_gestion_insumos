@@ -56,17 +56,4 @@ def consultar_pesca(inicio, final):
 
     else:
         print(f"Error: {response.status_code}")
-        print(response.text)
         return None, None
-
-# Ejemplo de uso de la función
-inicio = "20240101"
-final = "20240430"
-df_datos, df_dias_produccion = consultar_pesca(inicio, final)
-
-# Mostrar los resultados
-if df_datos is not None and df_dias_produccion is not None:
-    print("Datos completos:")
-    print(df_datos)
-    print("\nDías de producción por planta:")
-    print(df_dias_produccion)
