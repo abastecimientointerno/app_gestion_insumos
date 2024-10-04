@@ -1,7 +1,7 @@
 from functools import reduce
 import pandas as pd
 from api_portal import consultar_pesca
-from generar_ids import generar_ids_y_stock, filtrar_por_tipo_posicion, generar_y_separar_mb52
+from generar_ids import generar_ids_y_stock, filtrar_por_tipo_posicion, generar_y_separar_mb52, generar_ids_y_stock_valor
 import numpy as np
 # Definir la ruta de los archivos
 ruta_datasets = 'datasets.xlsx'
@@ -15,6 +15,11 @@ df_insumos = pd.read_excel(ruta_datasets, sheet_name='db_insumos')
 df_mb51 = pd.read_excel(ruta_mb51, sheet_name='Sheet1')
 df_mb52 = pd.read_excel(ruta_mb52, sheet_name='Sheet1')
 df_me2n = pd.read_excel(ruta_me2n, sheet_name='Sheet1')
+
+df_valor_centros= generar_ids_y_stock_valor(df_mb52,'general')
+
+print(df_valor_centros.head())
+
 # Homologacion de ids
 df_mb51 = generar_ids_y_stock(df_mb51)
 df_mb52_produccion, df_mb52_transito, df_mb52_hub, df_mb52_general = generar_y_separar_mb52(df_mb52)
@@ -46,20 +51,29 @@ df_base['faltantes'] = df_base.apply(
     axis=1
 )
 #Cobertura
-df_base['cobertura_teorica_con_stock_general'] = (df_base['stock_libre_mas_calidad_general'] * df_base['cobertura_ideal']) \
-                                                 / df_base['stock_cobertura_ideal'].replace(0, 1)
-
-df_base['cobertura_teorica_con_stock_general_hub'] = ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']) \
-                                                      * df_base['cobertura_ideal']) \
-                                                      / df_base['stock_cobertura_ideal'].replace(0, 1)
-
-df_base['cobertura_teorica_con_stock_general_hub_transito'] = ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + \
-                                                                df_base['stock_libre_mas_calidad_transito']) * df_base['cobertura_ideal']) \
-                                                                / df_base['stock_cobertura_ideal'].replace(0, 1)
-
-df_base['cobertura_teorica_con_stock_general_hub_transito_produccion'] = ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + \
-                                                                          df_base['stock_libre_mas_calidad_transito'] + df_base['stock_libre_mas_calidad_produccion']) * df_base['cobertura_ideal']) \
-                                                                          / df_base['stock_cobertura_ideal'].replace(0, 1)
+# Reemplazar ceros en 'stock_cobertura_ideal' para evitar divisiones por cero
+stock_cobertura_ideal = df_base['stock_cobertura_ideal'].replace(0, 1)
+condicion = df_base['ratio_nominal'] != 0
+df_base['cobertura_teorica_con_stock_general'] = np.where(
+    condicion,
+    (df_base['stock_libre_mas_calidad_general'] * df_base['cobertura_ideal']) / stock_cobertura_ideal,
+    0  # Si 'ratio_nominal' es 0, asigna 0
+)
+df_base['cobertura_teorica_con_stock_general_hub'] = np.where(
+    condicion,
+    ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']) * df_base['cobertura_ideal']) / stock_cobertura_ideal,
+    0
+)
+df_base['cobertura_teorica_con_stock_general_hub_transito'] = np.where(
+    condicion,
+    ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + df_base['stock_libre_mas_calidad_transito']) * df_base['cobertura_ideal']) / stock_cobertura_ideal,
+    0
+)
+df_base['cobertura_teorica_con_stock_general_hub_transito_produccion'] = np.where(
+    condicion,
+    ((df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + df_base['stock_libre_mas_calidad_transito'] + df_base['stock_libre_mas_calidad_produccion']) * df_base['cobertura_ideal']) / stock_cobertura_ideal,
+    0
+)
 df_consumo = df_mb51.copy()
 df_consumo_total = df_consumo.groupby(['id_localidad', 'id_insumo']).agg({'Cantidad': 'sum'}).reset_index()
 df_consumo_total['Cantidad'] = df_consumo_total['Cantidad'].abs()
@@ -73,14 +87,36 @@ df_consumo_total['consumo_diario'] = df_consumo_total['consumo_diario'].fillna(0
 df_consumo_total['id_localidad_insumo'] = df_consumo_total['id_localidad'].astype(str) + df_consumo_total['id_insumo'].astype(str)
 df_base = pd.merge(df_base, df_consumo_total[['id_localidad_insumo', 'consumo_diario','Cantidad','dias_de_pesca']],
                    on='id_localidad_insumo', how='left')
-df_base['cobertura_real_general'] = df_base['stock_libre_mas_calidad_general'] / df_base['consumo_diario']
-df_base['cobertura_real_general'] = df_base['cobertura_real_general'].replace([np.inf, -np.inf], 0)
-df_base['cobertura_real_general_hub'] = (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']) / df_base['consumo_diario']
-df_base['cobertura_real_general_hub'] =df_base['cobertura_real_general_hub'].replace([np.inf, -np.inf], 0)
-df_base['cobertura_real_general_hub_transito'] = (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']+ df_base['stock_libre_mas_calidad_transito']) / df_base['consumo_diario']
-df_base['cobertura_real_general_hub_transito'] = df_base['cobertura_real_general_hub_transito'].replace([np.inf, -np.inf], 0)
-df_base['cobertura_real_general_hub_transito_produccion'] = (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']+ df_base['stock_libre_mas_calidad_transito']+df_base['stock_libre_mas_calidad_produccion']) / df_base['consumo_diario']
-df_base['cobertura_real_general_hub_transito_produccion'] = df_base['cobertura_real_general_hub_transito_produccion'].replace([np.inf, -np.inf], 0)
+#Cobertura real
+# Condición para aplicar los cálculos solo si 'ratio_nominal' no es 0
+condicion = df_base['ratio_nominal'] != 0
+# Cobertura real con stock general
+df_base['cobertura_real_general'] = np.where(
+    condicion,
+    df_base['stock_libre_mas_calidad_general'] / df_base['consumo_diario'],
+    0
+)
+# Cobertura real con stock general + hub
+df_base['cobertura_real_general_hub'] = np.where(
+    condicion,
+    (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub']) / df_base['consumo_diario'],
+    0
+)
+# Cobertura real con stock general + hub + tránsito
+df_base['cobertura_real_general_hub_transito'] = np.where(
+    condicion,
+    (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + df_base['stock_libre_mas_calidad_transito']) / df_base['consumo_diario'],
+    0
+)
+# Cobertura real con stock general + hub + tránsito + producción
+df_base['cobertura_real_general_hub_transito_produccion'] = np.where(
+    condicion,
+    (df_base['stock_libre_mas_calidad_general'] + df_base['stock_libre_mas_calidad_hub'] + df_base['stock_libre_mas_calidad_transito'] + df_base['stock_libre_mas_calidad_produccion']) / df_base['consumo_diario'],
+    0
+)
+# Reemplazar valores infinitos (inf y -inf) por 0 en todas las columnas de cobertura real
+df_base[['cobertura_real_general', 'cobertura_real_general_hub', 'cobertura_real_general_hub_transito', 'cobertura_real_general_hub_transito_produccion']] = \
+    df_base[['cobertura_real_general', 'cobertura_real_general_hub', 'cobertura_real_general_hub_transito', 'cobertura_real_general_hub_transito_produccion']].replace([np.inf, -np.inf], 0)
 df_resultado = pd.merge(
     df_base,
     df_insumos[['id_insumo', 'nombre_insumo', 'id_final', 'valor_redondeo']],
@@ -91,3 +127,4 @@ df_resultado = df_resultado[['id_localidad','id_insumo','nombre_insumo','stock_l
 with pd.ExcelWriter('resultados.xlsx') as writer:
     df_resultado.to_excel(writer, sheet_name='seguimiento_insumos', index=False)
     df_datos.to_excel(writer, sheet_name='seguimiento_pesca', index=False)
+    df_valor_centros.to_excel(writer, sheet_name='valorizado_centros', index=False)

@@ -43,6 +43,42 @@ def generar_ids_y_stock(df, tipo='general'):
     
     return df
 
+def generar_ids_y_stock_valor(df, tipo='general'):
+    """
+    Genera las columnas necesarias para un DataFrame específico:
+    
+    - "id_localidad": basado en Centro y Almacén.
+    - "id_insumo": renombrado de la columna Material.
+    - "stock_libre_mas_calidad": suma de Libre utilización + Inspecc.de calidad (si las columnas existen).
+    - "id_localidad_insumo": concatenación de id_localidad y id_insumo.
+
+    Parámetros:
+    - df: DataFrame al que se le van a agregar las nuevas columnas.
+    - tipo: Si el tipo es 'general' incluye la columna stock_libre_mas_calidad.
+
+    Retorna:
+    - df: DataFrame modificado con las nuevas columnas.
+    """
+    # Generar "id_localidad"
+    df['id_localidad'] = df.apply(lambda row: generar_id_localidad(row['Centro'], row['Almacén']), axis=1)
+
+    # Renombrar "Material" a "id_insumo"
+    df['id_insumo'] = df['Material']
+
+    # Solo para ciertos DataFrames, generar "stock_libre_mas_calidad"
+    if 'Libre utilización' in df.columns and 'Inspecc.de calidad' in df.columns and tipo == 'general':
+        df['stock_libre_mas_calidad'] = df['Libre utilización'] + df['Inspecc.de calidad']
+    if 'Libre utilización' in df.columns and 'Inspecc.de calidad' in df.columns and tipo == 'general':
+        df['valor_libre_mas_calidad'] = df['Valor libre util.'] + df['Valor en insp.cal.']    
+    
+    # Generar "id_localidad_insumo" concatenando "id_localidad" e "id_insumo"
+
+    df = df.groupby('id_localidad')[['stock_libre_mas_calidad', 'valor_libre_mas_calidad']].sum().reset_index()
+    
+    return df
+
+
+
 def generar_y_separar_mb52(df, tipo='general'):
     """
     Genera las columnas necesarias para el DataFrame MB52 y lo separa en cuatro DataFrames según el almacén.
