@@ -77,16 +77,20 @@ def generar_y_separar_mb52(df, tipo='general'):
     # Generar "id_localidad_insumo" concatenando "id_localidad" e "id_insumo"
     df['id_localidad_insumo'] = df['id_localidad'] + df['id_insumo'].astype(str)
 
+    df = df.groupby(['id_localidad','Almacén','id_insumo','id_localidad_insumo'])['stock_libre_mas_calidad'].sum().reset_index()
+    
     # Separar en tres DataFrames según el valor de la columna 'Almacén'
     df_mb52_produccion = df[df['Almacén'] == 'PI01'].copy()
+    df_mb52_produccion = df_mb52_produccion.rename(columns ={'stock_libre_mas_calidad':'stock_libre_mas_calidad_produccion'})
     df_mb52_transito = df[df['Almacén'] == ''].copy()
+    df_mb52_transito = df_mb52_transito.rename(columns ={'stock_libre_mas_calidad':'stock_libre_mas_calidad_transito'})
     df_mb52_hub = df[df['Almacén'] == 'L003'].copy()
-
-    # DataFrame para el resto de las filas (que no cumplen ninguna de las condiciones anteriores)
-    df_mb52 = df[~df['Almacén'].isin(['PI01', '', 'L003'])].copy()
-
+    df_mb52_hub = df_mb52_hub.rename(columns ={'stock_libre_mas_calidad':'stock_libre_mas_calidad_hub'})
+    df_mb52_general = df[~df['Almacén'].isin(['PI01', '', 'L003'])].copy()
+    df_mb52_general = df_mb52_general.rename(columns ={'stock_libre_mas_calidad':'stock_libre_mas_calidad_general'})
+    
     # Retornar los cuatro DataFrames
-    return df_mb52_produccion, df_mb52_transito, df_mb52_hub, df_mb52
+    return df_mb52_produccion, df_mb52_transito, df_mb52_hub, df_mb52_general
 
 
 
