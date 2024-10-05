@@ -3,6 +3,7 @@ import pandas as pd
 from api_portal import consultar_pesca
 from generar_ids import generar_ids_y_stock, filtrar_por_tipo_posicion, generar_y_separar_mb52, generar_ids_y_stock_valor
 import numpy as np
+from forecast import realizar_proyeccion
 # Definir la ruta de los archivos
 ruta_datasets = 'datasets.xlsx'
 ruta_mb51 = 'MB51.xlsx'
@@ -123,8 +124,12 @@ df_resultado = pd.merge(
     on='id_insumo',
     how='left'
 )
+
+df_proyeccion_pesca = realizar_proyeccion(df_datos)
+
 df_resultado = df_resultado[['id_localidad','id_insumo','nombre_insumo','stock_libre_mas_calidad_general','stock_cobertura_ideal','excedentes','faltantes','familia','cobertura_meta','cobertura_teorica_con_stock_general','cobertura_teorica_con_stock_general_hub','cobertura_teorica_con_stock_general_hub_transito','cobertura_teorica_con_stock_general_hub_transito_produccion','consumo_diario','dias_de_pesca','ratio_nominal','cip','rendimiento','cobertura_ideal','maxima_descarga','id_localidad_insumo','Cantidad','id_final','valor_redondeo','cobertura_real_general','cobertura_real_general_hub','cobertura_real_general_hub_transito','cobertura_real_general_hub_transito_produccion']]
 with pd.ExcelWriter('resultados.xlsx') as writer:
     df_resultado.to_excel(writer, sheet_name='seguimiento_insumos', index=False)
     df_datos.to_excel(writer, sheet_name='seguimiento_pesca', index=False)
     df_valor_centros.to_excel(writer, sheet_name='valorizado_centros', index=False)
+    df_proyeccion_pesca.to_excel(writer, sheet_name='proyeccion_pesca', index=False)
