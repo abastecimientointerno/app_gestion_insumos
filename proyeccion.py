@@ -1,4 +1,3 @@
-# Importar librerías necesarias
 import pandas as pd
 from prophet import Prophet
 
@@ -10,16 +9,13 @@ def realizar_proyeccion(df_pesca):
     df_pesca['CNPDS'] = pd.to_numeric(df_pesca['CNPDS'], errors='coerce')
 
     # Rellenar NaN con 0
-    df_pesca['CNPDS'].fillna(0, inplace=True)
+    df_pesca['CNPDS'] = df_pesca['CNPDS'].fillna(0)
 
     # Totalizar por día (sumar todas las descargas en cada día)
-    df_daily = df_pesca.groupby(df_pesca['ds'].dt.date)['CNPDS'].sum().reset_index()
+    df_daily = df_pesca.groupby('ds')['CNPDS'].sum().reset_index()
 
     # Renombrar columnas para que Prophet pueda trabajar con ellas ('ds' para fecha y 'y' para la variable objetivo)
     df_daily.columns = ['ds', 'y']
-
-    # Convertir la columna 'ds' a datetime
-    df_daily['ds'] = pd.to_datetime(df_daily['ds'])
 
     # Crear y ajustar el modelo Prophet
     model = Prophet()
