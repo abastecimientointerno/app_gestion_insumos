@@ -1,0 +1,5 @@
+openpyxl
+prophet
+pandas
+numpy
+requests
