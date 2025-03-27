@@ -4,11 +4,12 @@ import json
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
 import os
+from dotenv import load_dotenv
 
 # 📌 Configurar conexión
 site_url = "https://tasaomega.sharepoint.com/sites/PD"
-username = "sample"
-password = "sample"
+username = os.getenv("SHAREPOINT_USERNAME")
+password = os.getenv("SHAREPOINT_PASSWORD")
 target_folder = "/sites/PD/Documentos compartidos/repositorio/app_reporte_insumos/db_data_insumos"
 
 # 📌 Leer DataFrame
